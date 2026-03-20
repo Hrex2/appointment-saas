@@ -2,7 +2,6 @@ import React, { useState } from "react"
 import { createAppointment } from "../api/appointmentApi"
 
 const CreateAppointment = ({ onSuccess }) => {
-
     const [form, setForm] = useState({
         name: "",
         date: "",
@@ -25,8 +24,9 @@ const CreateAppointment = ({ onSuccess }) => {
         try {
             setLoading(true)
             setError("")
+            const submittedName = form.name
             const res = await createAppointment(form)
-            setResult(res.data)
+            setResult({ ...res.data, submittedName })
             setForm({ name: "", date: "", time: "" })
 
             if (onSuccess) {
@@ -86,8 +86,8 @@ const CreateAppointment = ({ onSuccess }) => {
                 <div className="result-card">
                     <strong>Appointment created</strong>
                     <div className="result-grid">
-                        <span><strong>ID:</strong> {result.id || result._id}</span>
-                        <span><strong>Name:</strong> {result.name || form.name}</span>
+                        <span><strong>Code:</strong> {result.appointmentCode || result.id || result._id}</span>
+                        <span><strong>Name:</strong> {result.name || result.submittedName}</span>
                     </div>
                 </div>
             )}

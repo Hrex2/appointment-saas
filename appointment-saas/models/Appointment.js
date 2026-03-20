@@ -1,14 +1,18 @@
-/**
- * PURPOSE:
- * Store appointment with user reference
- */
-
 const mongoose = require("mongoose")
 
 const appointmentSchema = new mongoose.Schema({
-    email: {
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        index: true
+    },
+    appointmentCode: {
         type: String,
-        required: true // ✅ ensure every appointment belongs to a user
+        unique: true,
+        sparse: true
+    },
+    email: {
+        type: String
     },
     name: {
         type: String,
@@ -24,7 +28,7 @@ const appointmentSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ["booked", "cancelled", "changed"], // ✅ restrict values
+        enum: ["booked", "cancelled", "changed"],
         default: "booked"
     }
 }, { timestamps: true })

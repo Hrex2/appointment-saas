@@ -2,7 +2,6 @@ import React, { useState } from "react"
 import { getAppointment } from "../api/appointmentApi"
 
 const ViewAppointment = () => {
-
     const [id, setId] = useState("")
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(false)
@@ -10,7 +9,7 @@ const ViewAppointment = () => {
 
     const fetchData = async () => {
         if (!id) {
-            setError("Enter an appointment ID to search.")
+            setError("Enter an appointment code to search.")
             return
         }
 
@@ -31,11 +30,11 @@ const ViewAppointment = () => {
     return (
         <div className="stack-lg">
             <div className="stack">
-                <label className="field-label" htmlFor="view-id">Appointment ID</label>
+                <label className="field-label" htmlFor="view-id">Appointment code</label>
                 <input
                     id="view-id"
                     className="field"
-                    placeholder="Enter appointment ID"
+                    placeholder="Enter 6-digit appointment code"
                     value={id}
                     onChange={(e) => setId(e.target.value)}
                 />
@@ -53,6 +52,7 @@ const ViewAppointment = () => {
                 <div className="result-card">
                     <strong>Appointment details</strong>
                     <div className="result-grid">
+                        <span><strong>Code:</strong> {data.appointmentCode || data._id}</span>
                         <span><strong>Name:</strong> {data.name}</span>
                         <span><strong>Date:</strong> {data.date}</span>
                         <span><strong>Time:</strong> {data.time}</span>

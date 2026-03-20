@@ -1,28 +1,46 @@
-// controllers/authController.js
-
-/**
- * PURPOSE:
- * Handle login + OTP verification
- */
-/**
- * PURPOSE:
- * Handle login + OTP verification (secure version)
- */
-
 const User = require("../models/User")
 const { sendOTP } = require("../services/emailService")
 const jwt = require("jsonwebtoken")
+const { normalizeEmail } = require("../utils/helpers")
 
-// 🔢 Generate OTP
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000)
-const normalizeEmail = (value = "") => value.trim().toLowerCase()
 const isAdminBypassEnabled = () => process.env.ADMIN_BYPASS_ENABLED === "true"
 const isAdminBypassUser = (email) =>
     isAdminBypassEnabled() &&
     normalizeEmail(email) === normalizeEmail(process.env.ADMIN_EMAIL) &&
     process.env.ADMIN_BYPASS_CODE
 
-// 🟢 STEP 1: SEND OTP
+const linkUserByPhone = async (user, phone) => {
+    if (!phone) {
+        return user
+    }
+
+    const phoneOwner = await User.findOne({ phone })
+
+    if (!phoneOwner || String(phoneOwner._id) === String(user._id)) {
+        user.phone = phone
+        return user
+    }
+
+    if (phoneOwner.email && normalizeEmail(phoneOwner.email) !== normalizeEmail(user.email)) {
+        throw new Error("This phone number is already linked to another account")
+    }
+
+    phoneOwner.email = user.email
+    phoneOwner.phone = phone
+    phoneOwner.otp = null
+    phoneOwner.otpExpiry = null
+
+    if (!phoneOwner.name && user.name) {
+        phoneOwner.name = user.name
+    }
+
+    await phoneOwner.save()
+    await User.deleteOne({ _id: user._id })
+
+    return phoneOwner
+}
+
 exports.sendOtp = async (req, res) => {
     try {
         const { email } = req.body
@@ -40,16 +58,16 @@ exports.sendOtp = async (req, res) => {
         const otp = generateOTP()
         console.log("sendOtp:otp-generated")
 
-        let user = await User.findOne({ email })
+        let user = await User.findOne({ email: normalizeEmail(email) })
         console.log("sendOtp:user-looked-up", { exists: !!user })
 
         if (!user) {
-            user = new User({ email })
+            user = new User({ email: normalizeEmail(email) })
             console.log("sendOtp:user-created")
         }
 
         user.otp = otp
-        user.otpExpiry = Date.now() + 5 * 60 * 1000 // 5 min
+        user.otpExpiry = Date.now() + 5 * 60 * 1000
 
         await user.save()
         console.log("sendOtp:user-saved")
@@ -58,17 +76,15 @@ exports.sendOtp = async (req, res) => {
         console.log("sendOtp:email-sent")
 
         res.json({ message: "OTP sent" })
-
     } catch (err) {
         console.error("sendOtp error:", err)
         res.status(500).json({ error: err.message })
     }
 }
 
-// 🔐 STEP 2: VERIFY OTP
 exports.verifyOtp = async (req, res) => {
     try {
-        const { email, otp, phone } = req.body // 🔥 added phone
+        const { email, otp, phone } = req.body
         console.log("verifyOtp:start", { email, hasPhone: !!phone })
 
         if (!email || !otp) {
@@ -78,20 +94,17 @@ exports.verifyOtp = async (req, res) => {
         if (isAdminBypassUser(email) && otp === process.env.ADMIN_BYPASS_CODE) {
             console.log("verifyOtp:admin-bypass-success", { email })
 
-            let user = await User.findOne({ email })
+            let user = await User.findOne({ email: normalizeEmail(email) })
 
             if (!user) {
-                user = new User({ email })
+                user = new User({ email: normalizeEmail(email) })
             }
 
-            if (phone) {
-                user.phone = phone
-            }
-
+            user = await linkUserByPhone(user, phone)
             await user.save()
 
             const token = jwt.sign(
-                { email: user.email },
+                { email: user.email, userId: user._id },
                 process.env.JWT_SECRET,
                 { expiresIn: "1d" }
             )
@@ -102,7 +115,7 @@ exports.verifyOtp = async (req, res) => {
             })
         }
 
-        const user = await User.findOne({ email })
+        const user = await User.findOne({ email: normalizeEmail(email) })
 
         if (!user) {
             return res.status(400).json({ message: "User not found" })
@@ -116,20 +129,14 @@ exports.verifyOtp = async (req, res) => {
             return res.status(400).json({ message: "OTP expired" })
         }
 
-        // 🔥 LINK WHATSAPP NUMBER (if provided)
-        if (phone) {
-            user.phone = phone
-        }
-
-        // 🧹 Clear OTP
         user.otp = null
         user.otpExpiry = null
 
-        await user.save()
+        const linkedUser = await linkUserByPhone(user, phone)
+        await linkedUser.save()
 
-        // 🔑 Generate JWT
         const token = jwt.sign(
-            { email: user.email },
+            { email: linkedUser.email, userId: linkedUser._id },
             process.env.JWT_SECRET,
             { expiresIn: "1d" }
         )
@@ -138,7 +145,6 @@ exports.verifyOtp = async (req, res) => {
             message: "Login successful",
             token
         })
-
     } catch (err) {
         console.error("verifyOtp error:", err)
         res.status(500).json({ error: err.message })

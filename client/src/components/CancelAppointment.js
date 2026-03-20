@@ -2,7 +2,6 @@ import React, { useState } from "react"
 import { cancelAppointment } from "../api/appointmentApi"
 
 const CancelAppointment = ({ onSuccess }) => {
-
     const [id, setId] = useState("")
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
@@ -10,7 +9,7 @@ const CancelAppointment = ({ onSuccess }) => {
 
     const handleCancel = async () => {
         if (!id) {
-            setError("Enter an appointment ID before cancelling.")
+            setError("Enter an appointment code before cancelling.")
             return
         }
 
@@ -36,11 +35,11 @@ const CancelAppointment = ({ onSuccess }) => {
     return (
         <div className="stack-lg">
             <div className="stack">
-                <label className="field-label" htmlFor="cancel-id">Appointment ID</label>
+                <label className="field-label" htmlFor="cancel-id">Appointment code</label>
                 <input
                     id="cancel-id"
                     className="field"
-                    placeholder="Enter appointment ID"
+                    placeholder="Enter 6-digit appointment code"
                     value={id}
                     onChange={(e) => setId(e.target.value)}
                 />

@@ -16,7 +16,6 @@ const statusClassName = (status) => {
 }
 
 const ListAppointments = ({ refreshKey = 0 }) => {
-
     const [appointments, setAppointments] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
@@ -64,7 +63,9 @@ const ListAppointments = ({ refreshKey = 0 }) => {
                         <span className="appointment-meta">
                             {appt.date} at {appt.time}
                         </span>
-                        <span className="appointment-meta">ID: {appt._id}</span>
+                        <span className="appointment-meta">
+                            Code: {appt.appointmentCode || appt._id}
+                        </span>
                     </div>
                     <span className={statusClassName(appt.status)}>{appt.status || "Pending"}</span>
                 </article>

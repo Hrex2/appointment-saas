@@ -1,50 +1,91 @@
-// controllers/appointmentController.js
-
-/**
- * PURPOSE:
- * Contains business logic (MAIN BRAIN)
- * INPUT:
- * - request data from routes
- * OUTPUT:
- * - response to user (JSON or WhatsApp reply)
- */
-/**
- * PURPOSE:
- * Business logic (secured with user-based data)
- */
-
 const Appointment = require("../models/Appointment")
+const User = require("../models/User")
+const {
+    buildAppointmentIdentifierClauses,
+    buildLegacyIdentityClauses,
+    generateSixDigitCode,
+    normalizeEmail
+} = require("../utils/helpers")
 
-// 🟢 CREATE APPOINTMENT
+const resolveCurrentUser = async (req) => {
+    if (req.user?.userId) {
+        const byId = await User.findById(req.user.userId)
+        if (byId) {
+            return byId
+        }
+    }
+
+    if (req.user?.email) {
+        return User.findOne({ email: normalizeEmail(req.user.email) })
+    }
+
+    return null
+}
+
+const buildUserAppointmentFilter = (user) => {
+    const identityClauses = buildLegacyIdentityClauses(user)
+    return identityClauses.length === 1 ? identityClauses[0] : { $or: identityClauses }
+}
+
+const createUniqueAppointmentCode = async () => {
+    let appointmentCode
+    let exists = true
+
+    while (exists) {
+        appointmentCode = generateSixDigitCode()
+        exists = await Appointment.exists({ appointmentCode })
+    }
+
+    return appointmentCode
+}
+
 exports.createAppointment = async (req, res) => {
     try {
         const { name, date, time } = req.body
+        const currentUser = await resolveCurrentUser(req)
+
+        if (!currentUser) {
+            return res.status(401).json({ message: "User not found" })
+        }
+
+        const appointmentCode = await createUniqueAppointmentCode()
 
         const newAppointment = new Appointment({
+            userId: currentUser._id,
+            appointmentCode,
+            email: currentUser.email || currentUser.phone,
             name,
             date,
-            time,
-            email: req.user.email // 🔥 attach from JWT
+            time
         })
 
         await newAppointment.save()
 
         res.json({
             message: "Appointment Created",
-            id: newAppointment._id
+            id: newAppointment.appointmentCode,
+            appointmentCode: newAppointment.appointmentCode,
+            name: newAppointment.name
         })
-
     } catch (err) {
         res.status(500).json({ error: err.message })
     }
 }
 
-// 🔵 GET APPOINTMENT (ONLY OWN)
 exports.getAppointment = async (req, res) => {
     try {
+        const currentUser = await resolveCurrentUser(req)
+
+        if (!currentUser) {
+            return res.status(401).json({ message: "User not found" })
+        }
+
+        const identifierClauses = buildAppointmentIdentifierClauses(req.params.id)
         const appointment = await Appointment.findOne({
-            _id: req.params.id,
-            email: req.user.email // 🔒 restrict access
+            $and: [
+                buildUserAppointmentFilter(currentUser),
+                { $or: identifierClauses }
+            ]
         })
 
         if (!appointment) {
@@ -52,21 +93,26 @@ exports.getAppointment = async (req, res) => {
         }
 
         res.json(appointment)
-
     } catch (err) {
         res.status(500).json({ error: err.message })
     }
 }
 
-// 🟡 UPDATE APPOINTMENT (ONLY OWN)
 exports.updateAppointment = async (req, res) => {
     try {
         const { date, time } = req.body
+        const currentUser = await resolveCurrentUser(req)
+
+        if (!currentUser) {
+            return res.status(401).json({ message: "User not found" })
+        }
 
         const updated = await Appointment.findOneAndUpdate(
             {
-                _id: req.params.id,
-                email: req.user.email // 🔒 secure
+                $and: [
+                    buildUserAppointmentFilter(currentUser),
+                    { $or: buildAppointmentIdentifierClauses(req.params.id) }
+                ]
             },
             { date, time, status: "changed" },
             { new: true }
@@ -77,19 +123,25 @@ exports.updateAppointment = async (req, res) => {
         }
 
         res.json(updated)
-
     } catch (err) {
         res.status(500).json({ error: err.message })
     }
 }
 
-// 🔴 CANCEL APPOINTMENT (ONLY OWN)
 exports.cancelAppointment = async (req, res) => {
     try {
+        const currentUser = await resolveCurrentUser(req)
+
+        if (!currentUser) {
+            return res.status(401).json({ message: "User not found" })
+        }
+
         const cancelled = await Appointment.findOneAndUpdate(
             {
-                _id: req.params.id,
-                email: req.user.email // 🔒 secure
+                $and: [
+                    buildUserAppointmentFilter(currentUser),
+                    { $or: buildAppointmentIdentifierClauses(req.params.id) }
+                ]
             },
             { status: "cancelled" },
             { new: true }
@@ -100,21 +152,24 @@ exports.cancelAppointment = async (req, res) => {
         }
 
         res.json(cancelled)
-
     } catch (err) {
         res.status(500).json({ error: err.message })
     }
 }
 
-// 🔵 GET ALL USER APPOINTMENTS
 exports.getUserAppointments = async (req, res) => {
     try {
-        const appointments = await Appointment.find({
-            email: req.user.email // 🔥 only logged-in user's data
-        }).sort({ createdAt: -1 }) // latest first
+        const currentUser = await resolveCurrentUser(req)
+
+        if (!currentUser) {
+            return res.status(401).json({ message: "User not found" })
+        }
+
+        const appointments = await Appointment.find(
+            buildUserAppointmentFilter(currentUser)
+        ).sort({ createdAt: -1 })
 
         res.json(appointments)
-
     } catch (err) {
         res.status(500).json({ error: err.message })
     }

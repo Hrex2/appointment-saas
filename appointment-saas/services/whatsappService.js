@@ -1,77 +1,68 @@
-// services/whatsappService.js
-
-/**
- * PURPOSE:
- * Handle WhatsApp chatbot logic
- * INPUT:
- * - message from user
- * OUTPUT:
- * - reply message
- */
-
-/**
- * PURPOSE:
- * Handle WhatsApp conversation
- */
 const User = require("../models/User")
 const Appointment = require("../models/Appointment")
+const {
+    buildAppointmentIdentifierClauses,
+    buildLegacyIdentityClauses,
+    generateSixDigitCode
+} = require("../utils/helpers")
 
-// 🧠 Helpers
-const isValidDate = (date) => {
-    return /^\d{4}-\d{2}-\d{2}$/.test(date)
+const isValidDate = (date) => /^\d{4}-\d{2}-\d{2}$/.test(date)
+const isValidTime = (time) => /^\d{1,2}:\d{2}(AM|PM)$/i.test(time)
+
+const buildUserAppointmentFilter = (user) => {
+    const identityClauses = buildLegacyIdentityClauses(user)
+    return identityClauses.length === 1 ? identityClauses[0] : { $or: identityClauses }
 }
 
-const isValidTime = (time) => {
-    return /^\d{1,2}:\d{2}(AM|PM)$/i.test(time)
+const createUniqueAppointmentCode = async () => {
+    let appointmentCode
+    let exists = true
+
+    while (exists) {
+        appointmentCode = generateSixDigitCode()
+        exists = await Appointment.exists({ appointmentCode })
+    }
+
+    return appointmentCode
 }
 
 exports.handleMessage = async (phone, msg) => {
-
     msg = msg.trim()
 
     let user = await User.findOne({ phone })
 
-    // 🆕 New user
     if (!user) {
         user = await User.create({
             phone,
             name: "",
             step: "ask_name"
         })
-        return "👋 Welcome! What is your name?"
+        return "Welcome! What is your name?"
     }
 
-    // 🔹 Ask name
     if (user.step === "ask_name") {
         user.name = msg
         user.step = "menu"
         await user.save()
 
-        return `✅ Welcome ${user.name}!
-
-Choose:
-1. Book Appointment
-2. View Appointments
-3. Cancel Appointment`
+        return `Welcome ${user.name}!\n\nChoose:\n1. Book Appointment\n2. View Appointments\n3. Cancel Appointment`
     }
 
-    // 🔹 MENU
     if (user.step === "menu") {
-
         if (msg === "1") {
             user.step = "ask_appt_name"
             await user.save()
-            return "📝 Enter appointment name:"
+            return "Enter appointment name:"
         }
 
         if (msg === "2") {
-            const list = await Appointment.find({ email: user.phone })
+            const list = await Appointment.find(buildUserAppointmentFilter(user)).sort({ createdAt: -1 })
 
             if (list.length === 0) return "No appointments found"
 
-            let reply = "📋 Your Appointments:\n"
-            list.forEach(a => {
-                reply += `\nID: ${a._id}\n${a.name} - ${a.date} ${a.time} (${a.status})\n`
+            let reply = "Your Appointments:\n"
+            list.forEach((a) => {
+                reply += `\nID: ${a.appointmentCode || a._id}\n${a.name} - ${a.date} ${a.time} (${a.status})\n`
             })
 
             return reply
@@ -83,39 +74,33 @@ Choose:
             return "Enter appointment ID to cancel:"
         }
 
-        return "❌ Invalid option. Choose 1, 2 or 3."
+        return "Invalid option. Choose 1, 2 or 3."
     }
 
-    // 🔹 Appointment Name
     if (user.step === "ask_appt_name") {
         user.tempName = msg
         user.step = "ask_date"
         await user.save()
-        return "📅 Enter date (YYYY-MM-DD):"
+        return "Enter date (YYYY-MM-DD):"
     }
 
-    // 🔹 Date validation
     if (user.step === "ask_date") {
-
         if (!isValidDate(msg)) {
-            return "❌ Invalid date format.\nUse: YYYY-MM-DD"
+            return "Invalid date format.\nUse: YYYY-MM-DD"
         }
 
         user.tempDate = msg
         user.step = "ask_time"
         await user.save()
 
-        return "⏰ Enter time (e.g. 10:00AM):"
+        return "Enter time (e.g. 10:00AM):"
     }
 
-    // 🔹 Time + DOUBLE BOOKING CHECK
     if (user.step === "ask_time") {
-
         if (!isValidTime(msg)) {
-            return "❌ Invalid time format.\nExample: 10:00AM"
+            return "Invalid time format.\nExample: 10:00AM"
         }
 
-        // 🔥 Prevent double booking
         const existing = await Appointment.findOne({
             date: user.tempDate,
             time: msg,
@@ -123,12 +108,13 @@ Choose:
         })
 
         if (existing) {
-            return "⚠️ This time slot is already booked.\nTry another time."
+            return "This time slot is already booked.\nTry another time."
         }
 
-        // ✅ Create appointment
         const appt = new Appointment({
-            email: user.phone,
+            userId: user._id,
+            appointmentCode: await createUniqueAppointmentCode(),
+            email: user.email || user.phone,
             name: user.tempName,
             date: user.tempDate,
             time: msg,
@@ -142,20 +128,17 @@ Choose:
         user.tempDate = ""
         await user.save()
 
-        return `✅ Appointment Booked!
-ID: ${appt._id}
-
-Back to menu:
-1. Book
-2. View
-3. Cancel`
+        return `Appointment Booked!\nID: ${appt.appointmentCode || appt._id}\n\nBack to menu:\n1. Book\n2. View\n3. Cancel`
     }
 
-    // 🔹 CANCEL
     if (user.step === "ask_cancel_id") {
-
         const cancelled = await Appointment.findOneAndUpdate(
-            { _id: msg, email: user.phone },
+            {
+                $and: [
+                    buildUserAppointmentFilter(user),
+                    { $or: buildAppointmentIdentifierClauses(msg) }
+                ]
+            },
             { status: "cancelled" },
             { new: true }
         )
@@ -163,14 +146,9 @@ Back to menu:
         user.step = "menu"
         await user.save()
 
-        if (!cancelled) return "❌ Appointment not found"
+        if (!cancelled) return "Appointment not found"
 
-        return `❌ Appointment cancelled successfully
-
-Back to menu:
-1. Book
-2. View
-3. Cancel`
+        return "Appointment cancelled successfully\n\nBack to menu:\n1. Book\n2. View\n3. Cancel"
     }
 
     return "Type HI to start"

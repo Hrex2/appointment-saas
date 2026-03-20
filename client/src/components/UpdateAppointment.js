@@ -2,7 +2,6 @@ import React, { useState } from "react"
 import { updateAppointment } from "../api/appointmentApi"
 
 const UpdateAppointment = ({ onSuccess }) => {
-
     const [id, setId] = useState("")
     const [date, setDate] = useState("")
     const [time, setTime] = useState("")
@@ -12,7 +11,7 @@ const UpdateAppointment = ({ onSuccess }) => {
 
     const handleUpdate = async () => {
         if (!id || !date || !time) {
-            setError("Enter the appointment ID, a new date, and a new time.")
+            setError("Enter the appointment code, a new date, and a new time.")
             return
         }
 
@@ -40,11 +39,11 @@ const UpdateAppointment = ({ onSuccess }) => {
     return (
         <div className="stack-lg">
             <div className="stack">
-                <label className="field-label" htmlFor="update-id">Appointment ID</label>
+                <label className="field-label" htmlFor="update-id">Appointment code</label>
                 <input
                     id="update-id"
                     className="field"
-                    placeholder="Enter appointment ID"
+                    placeholder="Enter 6-digit appointment code"
                     value={id}
                     onChange={(e) => setId(e.target.value)}
                 />
