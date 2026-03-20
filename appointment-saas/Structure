@@ -1,0 +1,38 @@
+appointment-saas/
+│
+├── server.js                # Entry point
+├── config/
+│   └── db.js                # MongoDB connection
+│
+├── models/
+│   └── Appointment.js       # Database schema
+│
+├── controllers/
+│   └── appointmentController.js  # Business logic
+│
+├── routes/
+│   └── appointmentRoutes.js      # API routes
+│
+├── services/
+│   └── whatsappService.js        # WhatsApp logic (Twilio)
+│
+├── utils/
+│   └── helpers.js                # Helper functions
+│
+└── middleware/
+    └── logger.js                # Debug logs
+
+
+
+
+
+
+    USER (Frontend / WhatsApp)
+        ↓
+ROUTES (/api/appointments)
+        ↓
+CONTROLLER (logic)
+        ↓
+MODEL (MongoDB)
+        ↓
+RESPONSE → USER
