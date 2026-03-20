@@ -6,21 +6,27 @@ import ViewAppointment from "../components/ViewAppointment"
 import UpdateAppointment from "../components/UpdateAppointment"
 import CancelAppointment from "../components/CancelAppointment"
 import ListAppointments from "../components/ListAppointments"
+import AdminUserManager from "../components/AdminUserManager"
 
 const Dashboard = () => {
-
     const navigate = useNavigate()
     const [refreshKey, setRefreshKey] = useState(0)
+    const [role, setRole] = useState("user")
 
     useEffect(() => {
         const token = localStorage.getItem("token")
         if (!token) {
             navigate("/login")
+            return
         }
+
+        setRole(localStorage.getItem("userRole") || "user")
     }, [navigate])
 
     const logout = () => {
         localStorage.removeItem("token")
+        localStorage.removeItem("user")
+        localStorage.removeItem("userRole")
         navigate("/login")
     }
 
@@ -59,6 +65,16 @@ const Dashboard = () => {
                         </p>
                         <ListAppointments refreshKey={refreshKey} />
                     </section>
+
+                    {role === "admin" && (
+                        <section className="panel panel-wide">
+                            <h2 className="panel-title">User accounts</h2>
+                            <p className="panel-copy">
+                                Create or update user accounts so other people can sign in with their own email and WhatsApp number.
+                            </p>
+                            <AdminUserManager />
+                        </section>
+                    )}
 
                     <section className="panel panel-half">
                         <h2 className="panel-title">Create appointment</h2>

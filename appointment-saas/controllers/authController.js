@@ -1,5 +1,6 @@
 const User = require("../models/User")
 const { sendOTP } = require("../services/emailService")
+const { sendWhatsAppOTP } = require("../services/whatsappOtpService")
 const jwt = require("jsonwebtoken")
 const { normalizeEmail, normalizePhone } = require("../utils/helpers")
 
@@ -9,6 +10,26 @@ const isAdminBypassUser = (email) =>
     isAdminBypassEnabled() &&
     normalizeEmail(email) === normalizeEmail(process.env.ADMIN_EMAIL) &&
     process.env.ADMIN_BYPASS_CODE
+
+const issueAuthPayload = (user) => {
+    const token = jwt.sign(
+        { email: user.email, userId: user._id, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: "1d" }
+    )
+
+    return {
+        message: "Login successful",
+        token,
+        user: {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            role: user.role
+        }
+    }
+}
 
 const linkUserByPhone = async (user, phone) => {
     const normalizedPhone = normalizePhone(phone)
@@ -43,10 +64,37 @@ const linkUserByPhone = async (user, phone) => {
     return phoneOwner
 }
 
+const findOrCreateUserForOtp = async (email, phone) => {
+    const normalizedEmail = normalizeEmail(email)
+    const normalizedPhone = normalizePhone(phone)
+
+    let user = null
+
+    if (normalizedEmail) {
+        user = await User.findOne({ email: normalizedEmail })
+    }
+
+    if (!user && normalizedPhone) {
+        user = await User.findOne({ phone: normalizedPhone })
+        if (user && normalizedEmail && !user.email) {
+            user.email = normalizedEmail
+        }
+    }
+
+    if (!user) {
+        user = new User({
+            email: normalizedEmail || undefined,
+            phone: normalizedPhone || undefined
+        })
+    }
+
+    return user
+}
+
 exports.sendOtp = async (req, res) => {
     try {
-        const { email } = req.body
-        console.log("sendOtp:start", { email })
+        const { email = "", phone = "", channel = "whatsapp" } = req.body
+        console.log("sendOtp:start", { email, phone, channel })
 
         if (!email) {
             return res.status(400).json({ message: "Email is required" })
@@ -58,26 +106,28 @@ exports.sendOtp = async (req, res) => {
         }
 
         const otp = generateOTP()
-        console.log("sendOtp:otp-generated")
-
-        let user = await User.findOne({ email: normalizeEmail(email) })
-        console.log("sendOtp:user-looked-up", { exists: !!user })
-
-        if (!user) {
-            user = new User({ email: normalizeEmail(email) })
-            console.log("sendOtp:user-created")
-        }
+        const user = await findOrCreateUserForOtp(email, phone)
 
         user.otp = otp
         user.otpExpiry = Date.now() + 5 * 60 * 1000
 
+        if (!user.role) {
+            user.role = normalizeEmail(email) === normalizeEmail(process.env.ADMIN_EMAIL) ? "admin" : "user"
+        }
+
         await user.save()
-        console.log("sendOtp:user-saved")
+
+        if (channel === "whatsapp") {
+            if (!phone) {
+                return res.status(400).json({ message: "WhatsApp phone is required for WhatsApp OTP" })
+            }
+
+            await sendWhatsAppOTP(phone, otp)
+            return res.json({ message: "OTP sent to WhatsApp" })
+        }
 
         await sendOTP(email, otp)
-        console.log("sendOtp:email-sent")
-
-        res.json({ message: "OTP sent" })
+        res.json({ message: "OTP sent to email" })
     } catch (err) {
         console.error("sendOtp error:", err)
         res.status(500).json({ error: err.message })
@@ -94,27 +144,20 @@ exports.verifyOtp = async (req, res) => {
         }
 
         if (isAdminBypassUser(email) && otp === process.env.ADMIN_BYPASS_CODE) {
-            console.log("verifyOtp:admin-bypass-success", { email })
-
             let user = await User.findOne({ email: normalizeEmail(email) })
 
             if (!user) {
-                user = new User({ email: normalizeEmail(email) })
+                user = new User({
+                    email: normalizeEmail(email),
+                    role: "admin"
+                })
             }
 
             user = await linkUserByPhone(user, phone)
+            user.role = "admin"
             await user.save()
 
-            const token = jwt.sign(
-                { email: user.email, userId: user._id },
-                process.env.JWT_SECRET,
-                { expiresIn: "1d" }
-            )
-
-            return res.json({
-                message: "Admin bypass login successful",
-                token
-            })
+            return res.json(issueAuthPayload(user))
         }
 
         const user = await User.findOne({ email: normalizeEmail(email) })
@@ -135,18 +178,14 @@ exports.verifyOtp = async (req, res) => {
         user.otpExpiry = null
 
         const linkedUser = await linkUserByPhone(user, phone)
+
+        if (normalizeEmail(linkedUser.email) === normalizeEmail(process.env.ADMIN_EMAIL)) {
+            linkedUser.role = "admin"
+        }
+
         await linkedUser.save()
 
-        const token = jwt.sign(
-            { email: linkedUser.email, userId: linkedUser._id },
-            process.env.JWT_SECRET,
-            { expiresIn: "1d" }
-        )
-
-        res.json({
-            message: "Login successful",
-            token
-        })
+        res.json(issueAuthPayload(linkedUser))
     } catch (err) {
         console.error("verifyOtp error:", err)
         res.status(500).json({ error: err.message })

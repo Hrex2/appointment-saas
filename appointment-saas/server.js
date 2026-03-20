@@ -23,19 +23,14 @@ const path = require("path"); // ✅ ADD THIS
 const connectDB = require("./config/db");
 const appointmentRoutes = require("./routes/appointmentRoutes");
 const authRoutes = require("./routes/authRoutes");
+const userRoutes = require("./routes/userRoutes");
 const logger = require("./middleware/logger");
 
 const { handleMessage } = require("./services/whatsappService");
 
 const app = express();
 const requiredEnvVars = ["MONGO_URI", "JWT_SECRET"];
-const emailEnvVars = ["RESEND_API_KEY", "RESEND_FROM_EMAIL"];
-const adminBypassEnabled = process.env.ADMIN_BYPASS_ENABLED === "true";
-const emailRequired = !adminBypassEnabled;
-const effectiveRequiredEnvVars = emailRequired
-  ? [...requiredEnvVars, ...emailEnvVars]
-  : requiredEnvVars;
-const missingEnvVars = effectiveRequiredEnvVars.filter((key) => !process.env[key]);
+const missingEnvVars = requiredEnvVars.filter((key) => !process.env[key]);
 
 if (missingEnvVars.length > 0) {
   throw new Error(`Missing required environment variables: ${missingEnvVars.join(", ")}`);
@@ -51,6 +46,7 @@ app.use(logger);
 // 🔹 API Routes
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
 
 // 🔥 WhatsApp Webhook Route
 app.post("/webhook", async (req, res) => {

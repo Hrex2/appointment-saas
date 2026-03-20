@@ -1,0 +1,31 @@
+const twilio = require("twilio")
+const { formatWhatsAppPhone } = require("../utils/helpers")
+
+const getTwilioClient = () => {
+    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
+        throw new Error("Missing Twilio credentials for WhatsApp OTP")
+    }
+
+    return twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+}
+
+const sendWhatsAppOTP = async (phone, otp) => {
+    if (!process.env.TWILIO_WHATSAPP_FROM) {
+        throw new Error("Missing TWILIO_WHATSAPP_FROM")
+    }
+
+    const client = getTwilioClient()
+    const to = formatWhatsAppPhone(phone)
+
+    if (!to) {
+        throw new Error("A valid WhatsApp phone number is required")
+    }
+
+    await client.messages.create({
+        from: process.env.TWILIO_WHATSAPP_FROM,
+        to,
+        body: `Your Appointment SaaS OTP is ${otp}`
+    })
+}
+
+module.exports = { sendWhatsAppOTP }

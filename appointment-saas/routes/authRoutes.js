@@ -1,10 +1,3 @@
-// routes/authRoutes.js
-
-/**
- * PURPOSE:
- * Auth endpoints
- */
-
 const express = require("express")
 const router = express.Router()
 
