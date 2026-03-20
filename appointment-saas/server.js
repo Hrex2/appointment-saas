@@ -28,8 +28,14 @@ const logger = require("./middleware/logger");
 const { handleMessage } = require("./services/whatsappService");
 
 const app = express();
-const requiredEnvVars = ["MONGO_URI", "JWT_SECRET", "EMAIL_USER", "EMAIL_PASS"];
-const missingEnvVars = requiredEnvVars.filter((key) => !process.env[key]);
+const requiredEnvVars = ["MONGO_URI", "JWT_SECRET"];
+const emailEnvVars = ["RESEND_API_KEY", "RESEND_FROM_EMAIL"];
+const adminBypassEnabled = process.env.ADMIN_BYPASS_ENABLED === "true";
+const emailRequired = !adminBypassEnabled;
+const effectiveRequiredEnvVars = emailRequired
+  ? [...requiredEnvVars, ...emailEnvVars]
+  : requiredEnvVars;
+const missingEnvVars = effectiveRequiredEnvVars.filter((key) => !process.env[key]);
 
 if (missingEnvVars.length > 0) {
   throw new Error(`Missing required environment variables: ${missingEnvVars.join(", ")}`);

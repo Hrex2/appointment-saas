@@ -5,36 +5,33 @@
  * Send OTP to user's email
  */
 
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 
-const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    }
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendOTP = async (email, otp) => {
     console.log("emailService:sendOTP:start", {
         email,
-        hasEmailUser: !!process.env.EMAIL_USER,
-        hasEmailPass: !!process.env.EMAIL_PASS
+        hasResendApiKey: !!process.env.RESEND_API_KEY,
+        hasResendFromEmail: !!process.env.RESEND_FROM_EMAIL
     })
 
-    await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: email,
+    const { data, error } = await resend.emails.send({
+        from: process.env.RESEND_FROM_EMAIL,
+        to: [email],
         subject: "Your OTP Code",
+        html: `<p>Your OTP is <strong>${otp}</strong></p>`,
         text: `Your OTP is ${otp}`
     });
 
-    console.log("emailService:sendOTP:success", { email })
+    if (error) {
+        throw new Error(`Resend error: ${error.message}`);
+    }
+
+    console.log("emailService:sendOTP:success", {
+        email,
+        emailId: data?.id
+    })
 };
 
 module.exports = { sendOTP };
