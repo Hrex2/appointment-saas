@@ -1,4 +1,4 @@
-import React, { useEffect } from "react"
+import React, { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
 import CreateAppointment from "../components/CreateAppointment"
@@ -10,8 +10,8 @@ import ListAppointments from "../components/ListAppointments"
 const Dashboard = () => {
 
     const navigate = useNavigate()
+    const [refreshKey, setRefreshKey] = useState(0)
 
-    // 🔐 Check auth on load
     useEffect(() => {
         const token = localStorage.getItem("token")
         if (!token) {
@@ -24,46 +24,67 @@ const Dashboard = () => {
         navigate("/login")
     }
 
+    const refreshAppointments = () => {
+        setRefreshKey((current) => current + 1)
+    }
+
     return (
-        <div style={{ padding: "20px" }}>
-            <h1>📅 Appointment Dashboard</h1>
+        <div className="app-shell">
+            <div className="dashboard-shell">
+                <section className="dashboard-hero">
+                    <div>
+                        <p className="eyebrow">Appointments</p>
+                        <h1 className="hero-title">Manage your schedule with less friction.</h1>
+                        <p className="hero-copy">
+                            Review upcoming bookings, create new appointments, and handle updates
+                            from one clean workspace.
+                        </p>
+                    </div>
 
-            <button 
-                onClick={logout}
-                style={{ marginBottom: "20px" }}
-            >
-                Logout
-            </button>
+                    <div className="button-row">
+                        <button className="btn btn-secondary" onClick={refreshAppointments}>
+                            Refresh list
+                        </button>
+                        <button className="btn btn-primary" onClick={logout}>
+                            Logout
+                        </button>
+                    </div>
+                </section>
 
-            <hr />
+                <div className="dashboard-grid">
+                    <section className="panel panel-wide">
+                        <h2 className="panel-title">All appointments</h2>
+                        <p className="panel-copy">
+                            Your live appointment feed refreshes after create, update, and cancel actions.
+                        </p>
+                        <ListAppointments refreshKey={refreshKey} />
+                    </section>
 
-            {/* 📋 All Appointments */}
-            <h2>All Appointments</h2>
-            <ListAppointments />
+                    <section className="panel panel-half">
+                        <h2 className="panel-title">Create appointment</h2>
+                        <p className="panel-copy">Capture a new booking and instantly surface its ID.</p>
+                        <CreateAppointment onSuccess={refreshAppointments} />
+                    </section>
 
-            <hr />
+                    <section className="panel panel-half">
+                        <h2 className="panel-title">View appointment</h2>
+                        <p className="panel-copy">Look up a booking by ID when you need details fast.</p>
+                        <ViewAppointment />
+                    </section>
 
-            {/* ➕ Create */}
-            <h2>Create Appointment</h2>
-            <CreateAppointment />
+                    <section className="panel panel-half">
+                        <h2 className="panel-title">Update appointment</h2>
+                        <p className="panel-copy">Reschedule an existing booking without leaving the page.</p>
+                        <UpdateAppointment onSuccess={refreshAppointments} />
+                    </section>
 
-            <hr />
-
-            {/* 🔍 View */}
-            <h2>View Appointment</h2>
-            <ViewAppointment />
-
-            <hr />
-
-            {/* ✏️ Update */}
-            <h2>Update Appointment</h2>
-            <UpdateAppointment />
-
-            <hr />
-
-            {/* ❌ Cancel */}
-            <h2>Cancel Appointment</h2>
-            <CancelAppointment />
+                    <section className="panel panel-half">
+                        <h2 className="panel-title">Cancel appointment</h2>
+                        <p className="panel-copy">Cancel by appointment ID and keep the dashboard in sync.</p>
+                        <CancelAppointment onSuccess={refreshAppointments} />
+                    </section>
+                </div>
+            </div>
         </div>
     )
 }

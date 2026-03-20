@@ -9,7 +9,14 @@
  */
 
 module.exports = (req, res, next) => {
+    const body = { ...req.body }
+
+    // Avoid logging sensitive auth payloads into production logs.
+    if (typeof body.otp !== "undefined") {
+        body.otp = "[REDACTED]"
+    }
+
     console.log(`Request: ${req.method} ${req.url}`)
-    console.log("Body:", req.body)
+    console.log("Body:", body)
     next()
 }

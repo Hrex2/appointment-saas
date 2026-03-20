@@ -1,9 +1,6 @@
 import React, { useState } from "react"
-import axios from "axios"
 import { useNavigate } from "react-router-dom"
-
-// 🔥 CHANGE THIS to your deployed backend
-const API = "https://appointment-saas-gjwu.onrender.com"
+import { sendOtp, verifyOtp } from "../api/authApi"
 
 const Login = () => {
 
@@ -12,114 +9,140 @@ const Login = () => {
     const [phone, setPhone] = useState("")
     const [step, setStep] = useState(1)
     const [loading, setLoading] = useState(false)
+    const [error, setError] = useState("")
+    const [message, setMessage] = useState("")
 
     const navigate = useNavigate()
 
-    // STEP 1: SEND OTP
-    const sendOtp = async () => {
-
+    const handleSendOtp = async () => {
         if (!email) {
-            alert("Enter email first")
+            setError("Enter your email to receive a one-time password.")
             return
         }
 
         try {
             setLoading(true)
-
-            await axios.post(`${API}/api/auth/send-otp`, { email })
-
-            alert("OTP sent to email")
+            setError("")
+            setMessage("")
+            await sendOtp(email)
+            setMessage("OTP sent. Check your inbox and continue with verification.")
             setStep(2)
-
         } catch (err) {
             console.error(err)
-            alert("Error sending OTP")
+            setError("We couldn't send the OTP right now. Please try again.")
         } finally {
             setLoading(false)
         }
     }
 
-    // STEP 2: VERIFY OTP
-    const verifyOtp = async () => {
-
+    const handleVerifyOtp = async () => {
         if (!otp || !phone) {
-            alert("Enter OTP and phone")
+            setError("Enter both the OTP and the WhatsApp-enabled phone number.")
             return
         }
 
         try {
             setLoading(true)
+            setError("")
+            setMessage("")
 
-            const res = await axios.post(
-                `${API}/api/auth/verify-otp`,
-                {
-                    email,
-                    otp,
-                    phone
-                }
-            )
+            const res = await verifyOtp({
+                email,
+                otp,
+                phone
+            })
 
             localStorage.setItem("token", res.data.token)
-
-            alert("Login success")
+            setMessage("Login successful. Redirecting to your dashboard.")
             navigate("/")
-
         } catch (err) {
             console.error(err)
-            alert("Invalid OTP or error")
+            setError("The OTP was invalid or expired. Please try again.")
         } finally {
             setLoading(false)
         }
     }
 
     return (
-        <div style={{ textAlign: "center", marginTop: "100px" }}>
-            <h2>Login</h2>
+        <div className="app-shell auth-shell">
+            <div className="auth-card">
+                <p className="eyebrow">Appointment SaaS</p>
+                <h1 className="hero-title">Sign in with a quick OTP flow.</h1>
+                <p className="hero-copy">
+                    Use your email to receive a one-time password, then confirm your phone number
+                    to reach the dashboard.
+                </p>
 
-            {/* STEP 1 */}
-            {step === 1 && (
-                <>
-                    <input
-                        placeholder="Email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        style={{ padding: "10px", width: "250px" }}
-                    />
+                <div className="stack-lg" style={{ marginTop: "28px" }}>
+                    <div className="stack">
+                        <label className="field-label" htmlFor="email">Email</label>
+                        <input
+                            id="email"
+                            className="field"
+                            type="email"
+                            placeholder="you@example.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                        />
+                    </div>
 
-                    <br /><br />
+                    {step === 2 && (
+                        <>
+                            <div className="stack">
+                                <label className="field-label" htmlFor="otp">One-time password</label>
+                                <input
+                                    id="otp"
+                                    className="field"
+                                    placeholder="Enter the OTP from your email"
+                                    value={otp}
+                                    onChange={(e) => setOtp(e.target.value)}
+                                />
+                            </div>
 
-                    <button onClick={sendOtp} disabled={loading}>
-                        {loading ? "Sending..." : "Send OTP"}
-                    </button>
-                </>
-            )}
+                            <div className="stack">
+                                <label className="field-label" htmlFor="phone">WhatsApp phone</label>
+                                <input
+                                    id="phone"
+                                    className="field"
+                                    placeholder="whatsapp:+91XXXXXXXXXX"
+                                    value={phone}
+                                    onChange={(e) => setPhone(e.target.value)}
+                                />
+                            </div>
+                        </>
+                    )}
 
-            {/* STEP 2 */}
-            {step === 2 && (
-                <>
-                    <input
-                        placeholder="Enter OTP"
-                        value={otp}
-                        onChange={(e) => setOtp(e.target.value)}
-                        style={{ padding: "10px", width: "250px" }}
-                    />
+                    {message && <p className="message message-success">{message}</p>}
+                    {error && <p className="message message-error">{error}</p>}
 
-                    <br /><br />
-
-                    <input
-                        placeholder="Phone (whatsapp:+91XXXXXXXXXX)"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        style={{ padding: "10px", width: "250px" }}
-                    />
-
-                    <br /><br />
-
-                    <button onClick={verifyOtp} disabled={loading}>
-                        {loading ? "Verifying..." : "Verify OTP"}
-                    </button>
-                </>
-            )}
+                    <div className="button-row">
+                        {step === 1 ? (
+                            <button className="btn btn-primary" onClick={handleSendOtp} disabled={loading}>
+                                {loading ? "Sending OTP..." : "Send OTP"}
+                            </button>
+                        ) : (
+                            <>
+                                <button className="btn btn-primary" onClick={handleVerifyOtp} disabled={loading}>
+                                    {loading ? "Verifying..." : "Verify OTP"}
+                                </button>
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={() => {
+                                        setStep(1)
+                                        setOtp("")
+                                        setPhone("")
+                                        setError("")
+                                        setMessage("")
+                                    }}
+                                    disabled={loading}
+                                >
+                                    Edit email
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
         </div>
     )
 }

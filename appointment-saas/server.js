@@ -28,6 +28,12 @@ const logger = require("./middleware/logger");
 const { handleMessage } = require("./services/whatsappService");
 
 const app = express();
+const requiredEnvVars = ["MONGO_URI", "JWT_SECRET", "EMAIL_USER", "EMAIL_PASS"];
+const missingEnvVars = requiredEnvVars.filter((key) => !process.env[key]);
+
+if (missingEnvVars.length > 0) {
+  throw new Error(`Missing required environment variables: ${missingEnvVars.join(", ")}`);
+}
 
 // 🔹 Middleware
 app.use(cors());

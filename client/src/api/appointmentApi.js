@@ -21,9 +21,5 @@ export const cancelAppointment = (id) => {
 }
 
 export const getAllAppointments = () => {
-    return axios.get(BASE_URL, {
-        headers: {
-            Authorization: localStorage.getItem("token")
-        }
-    })
+    return api.get("/appointments")
 }

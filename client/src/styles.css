@@ -1,0 +1,354 @@
+:root {
+    color-scheme: light;
+    --bg: #f4efe7;
+    --bg-accent: #e7f0eb;
+    --surface: rgba(255, 252, 247, 0.92);
+    --surface-strong: #fffaf2;
+    --border: rgba(74, 61, 44, 0.12);
+    --text: #1f2933;
+    --muted: #5f6c7b;
+    --primary: #0f766e;
+    --primary-strong: #115e59;
+    --danger: #b42318;
+    --danger-soft: rgba(180, 35, 24, 0.1);
+    --success: #166534;
+    --success-soft: rgba(22, 101, 52, 0.1);
+    --warning: #b45309;
+    --shadow: 0 24px 80px rgba(31, 41, 51, 0.12);
+    --radius-lg: 28px;
+    --radius-md: 20px;
+    --radius-sm: 14px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+    min-height: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+    color: var(--text);
+    background:
+        radial-gradient(circle at top left, rgba(15, 118, 110, 0.18), transparent 34%),
+        radial-gradient(circle at top right, rgba(180, 83, 9, 0.18), transparent 28%),
+        linear-gradient(180deg, var(--bg) 0%, #f8f5f0 100%);
+}
+
+button,
+input {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+.app-shell {
+    min-height: 100vh;
+    padding: 32px 20px 48px;
+}
+
+.auth-shell {
+    display: grid;
+    place-items: center;
+}
+
+.auth-card,
+.dashboard-shell {
+    width: min(1120px, 100%);
+    margin: 0 auto;
+}
+
+.auth-card {
+    max-width: 460px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    padding: 32px;
+    backdrop-filter: blur(12px);
+}
+
+.eyebrow {
+    margin: 0 0 10px;
+    color: var(--primary);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.hero-title {
+    margin: 0;
+    font-size: clamp(2rem, 4vw, 3.4rem);
+    line-height: 1;
+}
+
+.hero-copy {
+    margin: 14px 0 0;
+    color: var(--muted);
+    line-height: 1.6;
+}
+
+.stack {
+    display: grid;
+    gap: 14px;
+}
+
+.stack-lg {
+    display: grid;
+    gap: 20px;
+}
+
+.field-label {
+    font-size: 0.92rem;
+    font-weight: 600;
+}
+
+.field,
+.textarea {
+    width: 100%;
+    border: 1px solid rgba(95, 108, 123, 0.22);
+    border-radius: 16px;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.88);
+    color: var(--text);
+    transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+
+.field:focus,
+.textarea:focus {
+    outline: none;
+    border-color: rgba(15, 118, 110, 0.7);
+    box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.12);
+    transform: translateY(-1px);
+}
+
+.field-row {
+    display: grid;
+    gap: 12px;
+}
+
+.button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+
+.btn {
+    border: none;
+    border-radius: 999px;
+    padding: 12px 18px;
+    font-weight: 700;
+    transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.btn:disabled {
+    opacity: 0.65;
+    cursor: wait;
+    transform: none;
+}
+
+.btn-primary {
+    color: white;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
+}
+
+.btn-secondary {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid var(--border);
+}
+
+.btn-danger {
+    color: white;
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+}
+
+.message {
+    margin: 0;
+    padding: 12px 14px;
+    border-radius: 14px;
+    font-size: 0.95rem;
+}
+
+.message-success {
+    color: var(--success);
+    background: var(--success-soft);
+}
+
+.message-error {
+    color: var(--danger);
+    background: var(--danger-soft);
+}
+
+.message-muted {
+    color: var(--muted);
+    background: rgba(95, 108, 123, 0.08);
+}
+
+.dashboard-shell {
+    display: grid;
+    gap: 24px;
+}
+
+.dashboard-hero {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    align-items: flex-start;
+    padding: 28px;
+    background: linear-gradient(135deg, rgba(255, 252, 247, 0.98) 0%, rgba(231, 240, 235, 0.95) 100%);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 20px;
+}
+
+.panel {
+    grid-column: span 12;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    box-shadow: 0 12px 32px rgba(31, 41, 51, 0.08);
+    backdrop-filter: blur(10px);
+}
+
+.panel-wide {
+    grid-column: span 12;
+}
+
+.panel-half {
+    grid-column: span 6;
+}
+
+.panel-title {
+    margin: 0 0 6px;
+    font-size: 1.3rem;
+}
+
+.panel-copy {
+    margin: 0 0 18px;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.appointments-grid {
+    display: grid;
+    gap: 14px;
+}
+
+.appointment-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+    padding: 16px 18px;
+    background: rgba(255, 255, 255, 0.84);
+    border: 1px solid rgba(95, 108, 123, 0.12);
+    border-radius: 18px;
+}
+
+.appointment-main {
+    display: grid;
+    gap: 4px;
+}
+
+.appointment-name {
+    font-weight: 700;
+}
+
+.appointment-meta {
+    color: var(--muted);
+    font-size: 0.94rem;
+}
+
+.pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 96px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: capitalize;
+}
+
+.pill-confirmed,
+.pill-scheduled {
+    color: var(--success);
+    background: var(--success-soft);
+}
+
+.pill-cancelled {
+    color: var(--danger);
+    background: var(--danger-soft);
+}
+
+.pill-pending {
+    color: var(--warning);
+    background: rgba(180, 83, 9, 0.12);
+}
+
+.result-card {
+    padding: 16px 18px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.84);
+    border: 1px solid rgba(95, 108, 123, 0.12);
+}
+
+.result-grid {
+    display: grid;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.result-grid strong {
+    display: inline-block;
+    width: 84px;
+}
+
+@media (max-width: 900px) {
+    .panel-half {
+        grid-column: span 12;
+    }
+
+    .dashboard-hero {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 640px) {
+    .app-shell {
+        padding: 18px 14px 28px;
+    }
+
+    .auth-card,
+    .panel,
+    .dashboard-hero {
+        padding: 20px;
+    }
+
+    .appointment-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
