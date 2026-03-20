@@ -3,7 +3,8 @@ const Appointment = require("../models/Appointment")
 const {
     buildAppointmentIdentifierClauses,
     buildLegacyIdentityClauses,
-    generateSixDigitCode
+    generateSixDigitCode,
+    normalizePhone
 } = require("../utils/helpers")
 
 const isValidDate = (date) => /^\d{4}-\d{2}-\d{2}$/.test(date)
@@ -27,6 +28,7 @@ const createUniqueAppointmentCode = async () => {
 }
 
 exports.handleMessage = async (phone, msg) => {
+    phone = normalizePhone(phone)
     msg = msg.trim()
 
     let user = await User.findOne({ phone })

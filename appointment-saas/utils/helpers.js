@@ -1,6 +1,20 @@
 const mongoose = require("mongoose")
 
 const normalizeEmail = (value = "") => value.trim().toLowerCase()
+const normalizePhone = (value = "") => {
+    const trimmed = String(value || "").trim()
+
+    if (!trimmed) {
+        return ""
+    }
+
+    if (trimmed.startsWith("whatsapp:")) {
+        const normalized = trimmed.slice("whatsapp:".length).replace(/\s+/g, "")
+        return `whatsapp:${normalized}`
+    }
+
+    return trimmed.replace(/\s+/g, "")
+}
 
 const buildLegacyIdentityClauses = (user) => {
     const clauses = []
@@ -14,7 +28,7 @@ const buildLegacyIdentityClauses = (user) => {
     }
 
     if (user?.phone) {
-        clauses.push({ email: user.phone })
+        clauses.push({ email: normalizePhone(user.phone) })
     }
 
     return clauses
@@ -40,6 +54,7 @@ const generateSixDigitCode = () =>
 
 module.exports = {
     normalizeEmail,
+    normalizePhone,
     buildLegacyIdentityClauses,
     buildAppointmentIdentifierClauses,
     generateSixDigitCode

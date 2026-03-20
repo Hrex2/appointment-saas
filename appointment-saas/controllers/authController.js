@@ -1,7 +1,7 @@
 const User = require("../models/User")
 const { sendOTP } = require("../services/emailService")
 const jwt = require("jsonwebtoken")
-const { normalizeEmail } = require("../utils/helpers")
+const { normalizeEmail, normalizePhone } = require("../utils/helpers")
 
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000)
 const isAdminBypassEnabled = () => process.env.ADMIN_BYPASS_ENABLED === "true"
@@ -11,14 +11,16 @@ const isAdminBypassUser = (email) =>
     process.env.ADMIN_BYPASS_CODE
 
 const linkUserByPhone = async (user, phone) => {
-    if (!phone) {
+    const normalizedPhone = normalizePhone(phone)
+
+    if (!normalizedPhone) {
         return user
     }
 
-    const phoneOwner = await User.findOne({ phone })
+    const phoneOwner = await User.findOne({ phone: normalizedPhone })
 
     if (!phoneOwner || String(phoneOwner._id) === String(user._id)) {
-        user.phone = phone
+        user.phone = normalizedPhone
         return user
     }
 
@@ -27,7 +29,7 @@ const linkUserByPhone = async (user, phone) => {
     }
 
     phoneOwner.email = user.email
-    phoneOwner.phone = phone
+    phoneOwner.phone = normalizedPhone
     phoneOwner.otp = null
     phoneOwner.otpExpiry = null
 
