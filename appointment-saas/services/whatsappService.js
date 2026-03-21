@@ -33,6 +33,59 @@ const getLanguageFromInput = (msg = "") => {
     return null
 }
 
+const normalizeCommand = (msg = "") =>
+    String(msg || "").trim().toLowerCase()
+
+const getMenuAction = (msg = "", language = "en") => {
+    const normalized = normalizeCommand(msg)
+
+    if (normalized === "1") {
+        return "book"
+    }
+
+    if (normalized === "2") {
+        return "view"
+    }
+
+    if (normalized === "3") {
+        return "cancel"
+    }
+
+    const commandMap = {
+        en: {
+            book: ["book", "book appointment", "booking", "new booking"],
+            view: ["view", "view appointments", "appointments", "list", "show appointments"],
+            cancel: ["cancel", "cancel appointment", "delete", "remove appointment"]
+        },
+        hi: {
+            book: ["बुक", "बुक करें", "अपॉइंटमेंट बुक करें", "बुकिंग"],
+            view: ["देखें", "अपॉइंटमेंट देखें", "अपॉइंटमेंट", "लिस्ट", "सूची"],
+            cancel: ["रद्द", "रद्द करें", "अपॉइंटमेंट रद्द करें", "कैंसल"]
+        },
+        pa: {
+            book: ["ਬੁੱਕ", "ਬੁੱਕ ਕਰੋ", "ਅਪਾਇੰਟਮੈਂਟ ਬੁੱਕ ਕਰੋ"],
+            view: ["ਵੇਖੋ", "ਅਪਾਇੰਟਮੈਂਟ ਵੇਖੋ", "ਲਿਸਟ", "ਸੂਚੀ"],
+            cancel: ["ਰੱਦ", "ਰੱਦ ਕਰੋ", "ਅਪਾਇੰਟਮੈਂਟ ਰੱਦ ਕਰੋ", "ਕੈਂਸਲ"]
+        }
+    }
+
+    const commands = commandMap[language] || commandMap.en
+
+    if (commands.book.includes(normalized)) {
+        return "book"
+    }
+
+    if (commands.view.includes(normalized)) {
+        return "view"
+    }
+
+    if (commands.cancel.includes(normalized)) {
+        return "cancel"
+    }
+
+    return null
+}
+
 const content = {
     en: {
         languagePrompt:
@@ -247,13 +300,15 @@ exports.handleMessage = async (phone, msg) => {
     }
 
     if (user.step === "menu") {
-        if (msg === "1") {
+        const action = getMenuAction(msg, user.language)
+
+        if (action === "book") {
             user.step = "ask_appt_name"
             await user.save()
             return text.askAppointmentName
         }
 
-        if (msg === "2") {
+        if (action === "view") {
             const list = await Appointment.find(buildUserAppointmentFilter(user)).sort({ createdAt: -1 })
 
             if (list.length === 0) {
@@ -263,7 +318,7 @@ exports.handleMessage = async (phone, msg) => {
             return buildAppointmentsReply(list, user.language)
         }
 
-        if (msg === "3") {
+        if (action === "cancel") {
             user.step = "ask_cancel_id"
             await user.save()
             return text.askCancelId
