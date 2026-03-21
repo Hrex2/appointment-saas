@@ -4,7 +4,7 @@ const { normalizeEmail, normalizePhone } = require("../utils/helpers")
 exports.listUsers = async (_req, res) => {
     try {
         const users = await User.find({})
-            .select("name email phone role createdAt")
+            .select("name email phone role subscription.planName subscription.status createdAt")
             .sort({ createdAt: -1 })
 
         res.json(users)
@@ -40,7 +40,18 @@ exports.createOrUpdateUser = async (req, res) => {
         }
 
         if (!user) {
-            user = new User()
+            user = new User({
+                subscription: {
+                    planKey: "free",
+                    planName: "Free",
+                    tierLevel: 0,
+                    status: "active",
+                    usage: {
+                        appointmentCount: 0,
+                        appointmentLimit: 25
+                    }
+                }
+            })
         }
 
         if (normalizedEmail) {

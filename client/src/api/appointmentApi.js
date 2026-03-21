@@ -1,25 +1,7 @@
 import api from "./api"
 
-// CREATE
-export const createAppointment = (data) => {
-    return api.post("/appointments", data)
-}
-
-// GET
-export const getAppointment = (id) => {
-    return api.get(`/appointments/${id}`)
-}
-
-// UPDATE
-export const updateAppointment = (id, data) => {
-    return api.put(`/appointments/${id}`, data)
-}
-
-// DELETE
-export const cancelAppointment = (id) => {
-    return api.delete(`/appointments/${id}`)
-}
-
-export const getAllAppointments = () => {
-    return api.get("/appointments")
-}
+export const listAppointments = (params = {}) => api.get("/appointments", { params })
+export const getAppointment = (id) => api.get(`/appointments/${id}`)
+export const createAppointment = (payload) => api.post("/appointments", payload)
+export const updateAppointment = (id, payload) => api.put(`/appointments/${id}`, payload)
+export const deleteAppointment = (id) => api.delete(`/appointments/${id}`)

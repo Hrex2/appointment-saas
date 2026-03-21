@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    * {
+        @apply border-line;
+    }
+
+    html {
+        @apply bg-shell;
+    }
+
+    body {
+        @apply bg-shell text-slate-100 antialiased;
+        font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+        background-image:
+            radial-gradient(circle at top left, rgba(56, 189, 248, 0.16), transparent 25%),
+            radial-gradient(circle at top right, rgba(139, 92, 246, 0.18), transparent 24%),
+            radial-gradient(circle at bottom, rgba(236, 72, 153, 0.14), transparent 28%);
+    }
+
+    body,
+    #root {
+        min-height: 100vh;
+    }
+}
+
+@layer components {
+    .glass-card {
+        @apply rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl;
+        box-shadow: 0 12px 60px rgba(15, 23, 42, 0.36);
+    }
+
+    .soft-card {
+        @apply rounded-2xl border border-white/10 bg-[#0b111d]/90 backdrop-blur-xl;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.28);
+    }
+
+    .neon-border {
+        box-shadow:
+            inset 0 0 0 1px rgba(56, 189, 248, 0.18),
+            0 0 0 1px rgba(56, 189, 248, 0.08),
+            0 20px 60px rgba(56, 189, 248, 0.08);
+    }
+
+    .input-shell {
+        @apply h-12 w-full rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-slate-100 outline-none transition duration-200 placeholder:text-slate-500 focus:border-cyan-400/60 focus:bg-white/10 focus:ring-2 focus:ring-cyan-400/20;
+    }
+
+    .select-shell {
+        @apply input-shell appearance-none;
+    }
+
+    .label-shell {
+        @apply mb-2 block text-xs font-semibold uppercase tracking-[0.24em] text-slate-400;
+    }
+
+    .button-primary {
+        @apply inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 px-5 py-3 text-sm font-semibold text-slate-950 transition duration-200 hover:scale-[1.01] hover:shadow-neon;
+    }
+
+    .button-secondary {
+        @apply inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-100 transition duration-200 hover:border-cyan-400/40 hover:bg-white/10;
+    }
+
+    .button-danger {
+        @apply inline-flex items-center justify-center rounded-2xl border border-pink-400/30 bg-pink-500/10 px-5 py-3 text-sm font-semibold text-pink-100 transition duration-200 hover:bg-pink-500/20;
+    }
+}

@@ -4,12 +4,42 @@ const { sendWhatsAppOTP } = require("../services/whatsappOtpService")
 const jwt = require("jsonwebtoken")
 const { normalizeEmail, normalizePhone } = require("../utils/helpers")
 
+const OTP_TTL_MS = 5 * 60 * 1000
+const OTP_RATE_LIMIT_MS = 60 * 1000
+
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000)
+
 const isAdminBypassEnabled = () => process.env.ADMIN_BYPASS_ENABLED === "true"
+
 const isAdminBypassUser = (email) =>
     isAdminBypassEnabled() &&
     normalizeEmail(email) === normalizeEmail(process.env.ADMIN_EMAIL) &&
     process.env.ADMIN_BYPASS_CODE
+
+const buildDefaultBusinessSettings = (user) => ({
+    businessName: user.name ? `${user.name}'s Studio` : "Neon Appointments",
+    phoneNumber: user.phone || "",
+    whatsappNumber: user.phone || "",
+    workingHours: {
+        start: "09:00",
+        end: "18:00",
+        timezone: "Asia/Kolkata",
+        days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    },
+    fee: 0,
+    address: ""
+})
+
+const buildDefaultSubscription = () => ({
+    planKey: "free",
+    planName: "Free",
+    tierLevel: 0,
+    status: "active",
+    usage: {
+        appointmentCount: 0,
+        appointmentLimit: 25
+    }
+})
 
 const issueAuthPayload = (user) => {
     const token = jwt.sign(
@@ -26,8 +56,21 @@ const issueAuthPayload = (user) => {
             name: user.name,
             email: user.email,
             phone: user.phone,
-            role: user.role
-        }
+            role: user.role,
+            createdAt: user.createdAt
+        },
+        businessSettings: user.businessSettings,
+        subscription: user.subscription
+    }
+}
+
+const ensureUserScaffold = (user) => {
+    if (!user.businessSettings || !user.businessSettings.businessName) {
+        user.businessSettings = buildDefaultBusinessSettings(user)
+    }
+
+    if (!user.subscription || !user.subscription.planKey) {
+        user.subscription = buildDefaultSubscription()
     }
 }
 
@@ -35,6 +78,7 @@ const linkUserByPhone = async (user, phone) => {
     const normalizedPhone = normalizePhone(phone)
 
     if (!normalizedPhone) {
+        ensureUserScaffold(user)
         return user
     }
 
@@ -42,6 +86,13 @@ const linkUserByPhone = async (user, phone) => {
 
     if (!phoneOwner || String(phoneOwner._id) === String(user._id)) {
         user.phone = normalizedPhone
+        ensureUserScaffold(user)
+        user.businessSettings = {
+            ...buildDefaultBusinessSettings(user),
+            ...user.businessSettings?.toObject?.(),
+            phoneNumber: normalizedPhone,
+            whatsappNumber: normalizedPhone
+        }
         return user
     }
 
@@ -57,6 +108,8 @@ const linkUserByPhone = async (user, phone) => {
     if (!phoneOwner.name && user.name) {
         phoneOwner.name = user.name
     }
+
+    ensureUserScaffold(phoneOwner)
 
     await phoneOwner.save()
     await User.deleteOne({ _id: user._id })
@@ -88,28 +141,33 @@ const findOrCreateUserForOtp = async (email, phone) => {
         })
     }
 
+    ensureUserScaffold(user)
     return user
 }
 
 exports.sendOtp = async (req, res) => {
     try {
         const { email = "", phone = "", channel = "whatsapp" } = req.body
-        console.log("sendOtp:start", { email, phone, channel })
 
         if (!email) {
             return res.status(400).json({ message: "Email is required" })
         }
 
         if (isAdminBypassUser(email)) {
-            console.log("sendOtp:admin-bypass-available", { email })
             return res.json({ message: "Admin bypass enabled" })
         }
 
         const otp = generateOTP()
         const user = await findOrCreateUserForOtp(email, phone)
 
+        if (user.otpLastSentAt && Date.now() - user.otpLastSentAt.getTime() < OTP_RATE_LIMIT_MS) {
+            return res.status(429).json({ message: "Please wait before requesting another OTP" })
+        }
+
         user.otp = otp
-        user.otpExpiry = Date.now() + 5 * 60 * 1000
+        user.otpExpiry = Date.now() + OTP_TTL_MS
+        user.otpLastSentAt = new Date()
+        user.otpRequestCount = Number(user.otpRequestCount || 0) + 1
 
         if (!user.role) {
             user.role = normalizeEmail(email) === normalizeEmail(process.env.ADMIN_EMAIL) ? "admin" : "user"
@@ -137,7 +195,6 @@ exports.sendOtp = async (req, res) => {
 exports.verifyOtp = async (req, res) => {
     try {
         const { email, otp, phone } = req.body
-        console.log("verifyOtp:start", { email, hasPhone: !!phone })
 
         if (!email || !otp) {
             return res.status(400).json({ message: "Email and OTP required" })
@@ -155,6 +212,7 @@ exports.verifyOtp = async (req, res) => {
 
             user = await linkUserByPhone(user, phone)
             user.role = "admin"
+            ensureUserScaffold(user)
             await user.save()
 
             return res.json(issueAuthPayload(user))
@@ -166,7 +224,7 @@ exports.verifyOtp = async (req, res) => {
             return res.status(400).json({ message: "User not found" })
         }
 
-        if (user.otp != otp) {
+        if (String(user.otp) !== String(otp)) {
             return res.status(400).json({ message: "Invalid OTP" })
         }
 
@@ -183,6 +241,7 @@ exports.verifyOtp = async (req, res) => {
             linkedUser.role = "admin"
         }
 
+        ensureUserScaffold(linkedUser)
         await linkedUser.save()
 
         res.json(issueAuthPayload(linkedUser))

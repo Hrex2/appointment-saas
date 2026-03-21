@@ -12,6 +12,91 @@ const emptyToUndefined = (value) => {
     return value
 }
 
+const workingHoursSchema = new mongoose.Schema({
+    start: {
+        type: String,
+        default: "09:00"
+    },
+    end: {
+        type: String,
+        default: "18:00"
+    },
+    timezone: {
+        type: String,
+        default: "Asia/Kolkata"
+    },
+    days: {
+        type: [String],
+        default: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    }
+}, { _id: false })
+
+const businessSettingsSchema = new mongoose.Schema({
+    businessName: {
+        type: String,
+        default: "Neon Appointments"
+    },
+    phoneNumber: {
+        type: String,
+        default: ""
+    },
+    whatsappNumber: {
+        type: String,
+        default: ""
+    },
+    workingHours: {
+        type: workingHoursSchema,
+        default: () => ({})
+    },
+    fee: {
+        type: Number,
+        default: 0
+    },
+    address: {
+        type: String,
+        default: ""
+    }
+}, { _id: false })
+
+const subscriptionUsageSchema = new mongoose.Schema({
+    appointmentCount: {
+        type: Number,
+        default: 0
+    },
+    appointmentLimit: {
+        type: Number,
+        default: 25
+    }
+}, { _id: false })
+
+const subscriptionSchema = new mongoose.Schema({
+    planKey: {
+        type: String,
+        default: "free"
+    },
+    planName: {
+        type: String,
+        default: "Free"
+    },
+    tierLevel: {
+        type: Number,
+        default: 0
+    },
+    status: {
+        type: String,
+        enum: ["active", "expiring", "expired", "trialing"],
+        default: "active"
+    },
+    nextPaymentDate: Date,
+    currentPeriodEnd: Date,
+    stripeCustomerId: String,
+    stripeSubscriptionId: String,
+    usage: {
+        type: subscriptionUsageSchema,
+        default: () => ({})
+    }
+}, { _id: false })
+
 const userSchema = new mongoose.Schema({
     email: {
         type: String,
@@ -35,8 +120,21 @@ const userSchema = new mongoose.Schema({
         enum: ["en", "hi", "pa"],
         default: "en"
     },
+    businessSettings: {
+        type: businessSettingsSchema,
+        default: () => ({})
+    },
+    subscription: {
+        type: subscriptionSchema,
+        default: () => ({})
+    },
     otp: String,
     otpExpiry: Date,
+    otpLastSentAt: Date,
+    otpRequestCount: {
+        type: Number,
+        default: 0
+    },
     step: {
         type: String,
         default: "start"
