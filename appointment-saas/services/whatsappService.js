@@ -9,96 +9,158 @@ const {
 
 const isValidDate = (date) => /^\d{4}-\d{2}-\d{2}$/.test(date)
 const isValidTime = (time) => /^\d{1,2}:\d{2}(AM|PM)$/i.test(time)
+
 const isRestartCommand = (msg = "") => {
     const normalized = String(msg || "").trim().toLowerCase()
     return ["hi", "hello", "menu", "start", "restart", "reset"].includes(normalized)
 }
 
-const text = {
-    welcomeNew:
-        "Welcome! What is your name?\n" +
-        "स्वागत है! आपका नाम क्या है?\n" +
-        "ਜੀ ਆਇਆਂ ਨੂੰ! ਤੁਹਾਡਾ ਨਾਮ ਕੀ ਹੈ?",
-    welcomeBack: (name) =>
-        `Welcome back ${name}!\n` +
-        `वापसी पर स्वागत है ${name}!\n` +
-        `ਵਾਪਸੀ ਤੇ ਸਵਾਗਤ ਹੈ ${name}!\n\n` +
-        `Choose / चुनें / ਚੁਣੋ:\n` +
-        `1. Book Appointment / अपॉइंटमेंट बुक करें / ਅਪਾਇੰਟਮੈਂਟ ਬੁੱਕ ਕਰੋ\n` +
-        `2. View Appointments / अपॉइंटमेंट देखें / ਅਪਾਇੰਟਮੈਂਟ ਵੇਖੋ\n` +
-        `3. Cancel Appointment / अपॉइंटमेंट रद्द करें / ਅਪਾਇੰਟਮੈਂਟ ਰੱਦ ਕਰੋ`,
-    welcomeNamed: (name) =>
-        `Welcome ${name}!\n` +
-        `स्वागत है ${name}!\n` +
-        `ਜੀ ਆਇਆਂ ਨੂੰ ${name}!\n\n` +
-        `Choose / चुनें / ਚੁਣੋ:\n` +
-        `1. Book Appointment / अपॉइंटमेंट बुक करें / ਅਪਾਇੰਟਮੈਂਟ ਬੁੱਕ ਕਰੋ\n` +
-        `2. View Appointments / अपॉइंटमेंट देखें / ਅਪਾਇੰਟਮੈਂਟ ਵੇਖੋ\n` +
-        `3. Cancel Appointment / अपॉइंटमेंट रद्द करें / ਅਪਾਇੰਟਮੈਂਟ ਰੱਦ ਕਰੋ`,
-    invalidMenu:
-        "Invalid option. Choose 1, 2 or 3.\n" +
-        "गलत विकल्प। 1, 2 या 3 चुनें।\n" +
-        "ਗਲਤ ਵਿਕਲਪ। 1, 2 ਜਾਂ 3 ਚੁਣੋ।",
-    askAppointmentName:
-        "Enter appointment name:\n" +
-        "अपॉइंटमेंट का नाम लिखें:\n" +
-        "ਅਪਾਇੰਟਮੈਂਟ ਦਾ ਨਾਮ ਲਿਖੋ:",
-    askDate:
-        "Enter date (YYYY-MM-DD):\n" +
-        "तारीख लिखें (YYYY-MM-DD):\n" +
-        "ਤਾਰੀਖ ਲਿਖੋ (YYYY-MM-DD):",
-    invalidDate:
-        "Invalid date format. Use YYYY-MM-DD.\n" +
-        "गलत तारीख प्रारूप। YYYY-MM-DD इस्तेमाल करें।\n" +
-        "ਗਲਤ ਤਾਰੀਖ ਫਾਰਮੈਟ। YYYY-MM-DD ਵਰਤੋ।",
-    askTime:
-        "Enter time (e.g. 10:00AM):\n" +
-        "समय लिखें (जैसे 10:00AM):\n" +
-        "ਸਮਾਂ ਲਿਖੋ (ਜਿਵੇਂ 10:00AM):",
-    invalidTime:
-        "Invalid time format. Example: 10:00AM.\n" +
-        "गलत समय प्रारूप। उदाहरण: 10:00AM.\n" +
-        "ਗਲਤ ਸਮਾਂ ਫਾਰਮੈਟ। ਉਦਾਹਰਨ: 10:00AM.",
-    slotBooked:
-        "This time slot is already booked. Try another time.\n" +
-        "यह समय पहले से बुक है। दूसरा समय चुनें।\n" +
-        "ਇਹ ਸਮਾਂ ਪਹਿਲਾਂ ਹੀ ਬੁੱਕ ਹੈ। ਹੋਰ ਸਮਾਂ ਚੁਣੋ।",
-    askCancelId:
-        "Enter appointment ID to cancel:\n" +
-        "रद्द करने के लिए अपॉइंटमेंट ID लिखें:\n" +
-        "ਰੱਦ ਕਰਨ ਲਈ ਅਪਾਇੰਟਮੈਂਟ ID ਲਿਖੋ:",
-    appointmentNotFound:
-        "Appointment not found.\n" +
-        "अपॉइंटमेंट नहीं मिली।\n" +
-        "ਅਪਾਇੰਟਮੈਂਟ ਨਹੀਂ ਮਿਲੀ।",
-    noAppointments:
-        "No appointments found.\n" +
-        "कोई अपॉइंटमेंट नहीं मिली।\n" +
-        "ਕੋਈ ਅਪਾਇੰਟਮੈਂਟ ਨਹੀਂ ਮਿਲੀ।",
-    typeHi:
-        "Type HI to start.\n" +
-        "शुरू करने के लिए HI लिखें।\n" +
-        "ਸ਼ੁਰੂ ਕਰਨ ਲਈ HI ਲਿਖੋ।"
+const getLanguageFromInput = (msg = "") => {
+    const normalized = String(msg || "").trim().toLowerCase()
+
+    if (["1", "en", "eng", "english"].includes(normalized)) {
+        return "en"
+    }
+
+    if (["2", "hi", "hin", "hindi"].includes(normalized)) {
+        return "hi"
+    }
+
+    if (["3", "pa", "punjabi", "panjabi"].includes(normalized)) {
+        return "pa"
+    }
+
+    return null
 }
 
-const buildBookedMessage = (appointmentCode) =>
-    `Appointment booked.\n` +
-    `ID: ${appointmentCode}\n\n` +
-    `अपॉइंटमेंट बुक हो गई।\n` +
-    `ID: ${appointmentCode}\n\n` +
-    `ਅਪਾਇੰਟਮੈਂਟ ਬੁੱਕ ਹੋ ਗਈ।\n` +
-    `ID: ${appointmentCode}\n\n` +
-    `1. Book\n2. View\n3. Cancel`
+const content = {
+    en: {
+        languagePrompt:
+            "Choose language:\n1. English\n2. Hindi\n3. Punjabi",
+        invalidLanguage:
+            "Invalid option. Choose 1, 2 or 3 for language.",
+        welcomeNew:
+            "Welcome! What is your name?",
+        welcomeBack: (name) =>
+            `Welcome back ${name}!\n\nChoose:\n1. Book Appointment\n2. View Appointments\n3. Cancel Appointment`,
+        welcomeNamed: (name) =>
+            `Welcome ${name}!\n\nChoose:\n1. Book Appointment\n2. View Appointments\n3. Cancel Appointment`,
+        invalidMenu:
+            "Invalid option. Choose 1, 2 or 3.",
+        askAppointmentName:
+            "Enter appointment name:",
+        askDate:
+            "Enter date (YYYY-MM-DD):",
+        invalidDate:
+            "Invalid date format. Use YYYY-MM-DD.",
+        askTime:
+            "Enter time (e.g. 10:00AM):",
+        invalidTime:
+            "Invalid time format. Example: 10:00AM.",
+        slotBooked:
+            "This time slot is already booked. Try another time.",
+        askCancelId:
+            "Enter appointment ID to cancel:",
+        appointmentNotFound:
+            "Appointment not found.",
+        noAppointments:
+            "No appointments found.",
+        typeHi:
+            "Type HI to start.",
+        booked: (appointmentCode) =>
+            `Appointment booked.\nID: ${appointmentCode}\n\n1. Book\n2. View\n3. Cancel`,
+        cancelled:
+            "Appointment cancelled successfully.\n\n1. Book\n2. View\n3. Cancel",
+        appointmentsTitle:
+            "Your Appointments:"
+    },
+    hi: {
+        languagePrompt:
+            "भाषा चुनें:\n1. English\n2. हिंदी\n3. पंजाबी",
+        invalidLanguage:
+            "गलत विकल्प। भाषा के लिए 1, 2 या 3 चुनें।",
+        welcomeNew:
+            "स्वागत है! आपका नाम क्या है?",
+        welcomeBack: (name) =>
+            `वापसी पर स्वागत है ${name}!\n\nचुनें:\n1. अपॉइंटमेंट बुक करें\n2. अपॉइंटमेंट देखें\n3. अपॉइंटमेंट रद्द करें`,
+        welcomeNamed: (name) =>
+            `स्वागत है ${name}!\n\nचुनें:\n1. अपॉइंटमेंट बुक करें\n2. अपॉइंटमेंट देखें\n3. अपॉइंटमेंट रद्द करें`,
+        invalidMenu:
+            "गलत विकल्प। 1, 2 या 3 चुनें।",
+        askAppointmentName:
+            "अपॉइंटमेंट का नाम लिखें:",
+        askDate:
+            "तारीख लिखें (YYYY-MM-DD):",
+        invalidDate:
+            "गलत तारीख प्रारूप। YYYY-MM-DD इस्तेमाल करें।",
+        askTime:
+            "समय लिखें (जैसे 10:00AM):",
+        invalidTime:
+            "गलत समय प्रारूप। उदाहरण: 10:00AM.",
+        slotBooked:
+            "यह समय पहले से बुक है। दूसरा समय चुनें।",
+        askCancelId:
+            "रद्द करने के लिए अपॉइंटमेंट ID लिखें:",
+        appointmentNotFound:
+            "अपॉइंटमेंट नहीं मिली।",
+        noAppointments:
+            "कोई अपॉइंटमेंट नहीं मिली।",
+        typeHi:
+            "शुरू करने के लिए HI लिखें।",
+        booked: (appointmentCode) =>
+            `अपॉइंटमेंट बुक हो गई।\nID: ${appointmentCode}\n\n1. बुक करें\n2. देखें\n3. रद्द करें`,
+        cancelled:
+            "अपॉइंटमेंट सफलतापूर्वक रद्द हो गई।\n\n1. बुक करें\n2. देखें\n3. रद्द करें",
+        appointmentsTitle:
+            "आपकी अपॉइंटमेंट:"
+    },
+    pa: {
+        languagePrompt:
+            "ਭਾਸ਼ਾ ਚੁਣੋ:\n1. English\n2. Hindi\n3. ਪੰਜਾਬੀ",
+        invalidLanguage:
+            "ਗਲਤ ਵਿਕਲਪ। ਭਾਸ਼ਾ ਲਈ 1, 2 ਜਾਂ 3 ਚੁਣੋ।",
+        welcomeNew:
+            "ਜੀ ਆਇਆਂ ਨੂੰ! ਤੁਹਾਡਾ ਨਾਮ ਕੀ ਹੈ?",
+        welcomeBack: (name) =>
+            `ਵਾਪਸੀ ਤੇ ਸਵਾਗਤ ਹੈ ${name}!\n\nਚੁਣੋ:\n1. ਅਪਾਇੰਟਮੈਂਟ ਬੁੱਕ ਕਰੋ\n2. ਅਪਾਇੰਟਮੈਂਟ ਵੇਖੋ\n3. ਅਪਾਇੰਟਮੈਂਟ ਰੱਦ ਕਰੋ`,
+        welcomeNamed: (name) =>
+            `ਜੀ ਆਇਆਂ ਨੂੰ ${name}!\n\nਚੁਣੋ:\n1. ਅਪਾਇੰਟਮੈਂਟ ਬੁੱਕ ਕਰੋ\n2. ਅਪਾਇੰਟਮੈਂਟ ਵੇਖੋ\n3. ਅਪਾਇੰਟਮੈਂਟ ਰੱਦ ਕਰੋ`,
+        invalidMenu:
+            "ਗਲਤ ਵਿਕਲਪ। 1, 2 ਜਾਂ 3 ਚੁਣੋ।",
+        askAppointmentName:
+            "ਅਪਾਇੰਟਮੈਂਟ ਦਾ ਨਾਮ ਲਿਖੋ:",
+        askDate:
+            "ਤਾਰੀਖ ਲਿਖੋ (YYYY-MM-DD):",
+        invalidDate:
+            "ਗਲਤ ਤਾਰੀਖ ਫਾਰਮੈਟ। YYYY-MM-DD ਵਰਤੋ।",
+        askTime:
+            "ਸਮਾਂ ਲਿਖੋ (ਜਿਵੇਂ 10:00AM):",
+        invalidTime:
+            "ਗਲਤ ਸਮਾਂ ਫਾਰਮੈਟ। ਉਦਾਹਰਨ: 10:00AM.",
+        slotBooked:
+            "ਇਹ ਸਮਾਂ ਪਹਿਲਾਂ ਹੀ ਬੁੱਕ ਹੈ। ਹੋਰ ਸਮਾਂ ਚੁਣੋ।",
+        askCancelId:
+            "ਰੱਦ ਕਰਨ ਲਈ ਅਪਾਇੰਟਮੈਂਟ ID ਲਿਖੋ:",
+        appointmentNotFound:
+            "ਅਪਾਇੰਟਮੈਂਟ ਨਹੀਂ ਮਿਲੀ।",
+        noAppointments:
+            "ਕੋਈ ਅਪਾਇੰਟਮੈਂਟ ਨਹੀਂ ਮਿਲੀ।",
+        typeHi:
+            "ਸ਼ੁਰੂ ਕਰਨ ਲਈ HI ਲਿਖੋ।",
+        booked: (appointmentCode) =>
+            `ਅਪਾਇੰਟਮੈਂਟ ਬੁੱਕ ਹੋ ਗਈ।\nID: ${appointmentCode}\n\n1. ਬੁੱਕ ਕਰੋ\n2. ਵੇਖੋ\n3. ਰੱਦ ਕਰੋ`,
+        cancelled:
+            "ਅਪਾਇੰਟਮੈਂਟ ਸਫਲਤਾਪੂਰਵਕ ਰੱਦ ਹੋ ਗਈ।\n\n1. ਬੁੱਕ ਕਰੋ\n2. ਵੇਖੋ\n3. ਰੱਦ ਕਰੋ",
+        appointmentsTitle:
+            "ਤੁਹਾਡੀਆਂ ਅਪਾਇੰਟਮੈਂਟਾਂ:"
+    }
+}
 
-const buildCancelledMessage =
-    "Appointment cancelled successfully.\n" +
-    "अपॉइंटमेंट सफलतापूर्वक रद्द हो गई।\n" +
-    "ਅਪਾਇੰਟਮੈਂਟ ਸਫਲਤਾਪੂਰਵਕ ਰੱਦ ਹੋ ਗਈ।\n\n" +
-    "1. Book\n2. View\n3. Cancel"
+const getText = (language = "en") => content[language] || content.en
 
-const buildAppointmentsReply = (list) => {
-    let reply =
-        "Your Appointments / आपकी अपॉइंटमेंट / ਤੁਹਾਡੀਆਂ ਅਪਾਇੰਟਮੈਂਟਾਂ:\n"
+const buildAppointmentsReply = (list, language) => {
+    const text = getText(language)
+    let reply = `${text.appointmentsTitle}\n`
 
     list.forEach((a) => {
         reply += `\nID: ${a.appointmentCode || a._id}\n${a.name} - ${a.date} ${a.time} (${a.status})\n`
@@ -124,6 +186,13 @@ const createUniqueAppointmentCode = async () => {
     return appointmentCode
 }
 
+const resetConversation = async (user) => {
+    user.step = "select_language"
+    user.tempName = ""
+    user.tempDate = ""
+    await user.save()
+}
+
 exports.handleMessage = async (phone, msg) => {
     phone = normalizePhone(phone)
     msg = msg.trim()
@@ -134,27 +203,40 @@ exports.handleMessage = async (phone, msg) => {
         user = await User.create({
             phone,
             name: "",
-            step: "ask_name"
+            language: "en",
+            step: "select_language"
         })
-        return text.welcomeNew
+        return content.en.languagePrompt
     }
 
     if (isRestartCommand(msg)) {
+        await resetConversation(user)
+        return content.en.languagePrompt
+    }
+
+    if (user.step === "select_language") {
+        const language = getLanguageFromInput(msg)
+
+        if (!language) {
+            return content.en.invalidLanguage
+        }
+
+        user.language = language
+        user.tempName = ""
+        user.tempDate = ""
+
         if (!user.name) {
             user.step = "ask_name"
-            user.tempName = ""
-            user.tempDate = ""
             await user.save()
-            return text.welcomeNew
+            return getText(language).welcomeNew
         }
 
         user.step = "menu"
-        user.tempName = ""
-        user.tempDate = ""
         await user.save()
-
-        return text.welcomeBack(user.name)
+        return getText(language).welcomeBack(user.name)
     }
+
+    const text = getText(user.language)
 
     if (user.step === "ask_name") {
         user.name = msg
@@ -174,9 +256,11 @@ exports.handleMessage = async (phone, msg) => {
         if (msg === "2") {
             const list = await Appointment.find(buildUserAppointmentFilter(user)).sort({ createdAt: -1 })
 
-            if (list.length === 0) return text.noAppointments
+            if (list.length === 0) {
+                return text.noAppointments
+            }
 
-            return buildAppointmentsReply(list)
+            return buildAppointmentsReply(list, user.language)
         }
 
         if (msg === "3") {
@@ -239,7 +323,7 @@ exports.handleMessage = async (phone, msg) => {
         user.tempDate = ""
         await user.save()
 
-        return buildBookedMessage(appt.appointmentCode || appt._id)
+        return text.booked(appt.appointmentCode || appt._id)
     }
 
     if (user.step === "ask_cancel_id") {
@@ -257,9 +341,11 @@ exports.handleMessage = async (phone, msg) => {
         user.step = "menu"
         await user.save()
 
-        if (!cancelled) return text.appointmentNotFound
+        if (!cancelled) {
+            return text.appointmentNotFound
+        }
 
-        return buildCancelledMessage
+        return text.cancelled
     }
 
     return text.typeHi

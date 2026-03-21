@@ -30,6 +30,11 @@ const userSchema = new mongoose.Schema({
         enum: ["admin", "user"],
         default: "user"
     },
+    language: {
+        type: String,
+        enum: ["en", "hi", "pa"],
+        default: "en"
+    },
     otp: String,
     otpExpiry: Date,
     step: {
