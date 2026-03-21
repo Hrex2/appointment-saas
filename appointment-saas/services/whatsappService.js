@@ -36,6 +36,9 @@ const getLanguageFromInput = (msg = "") => {
 const normalizeCommand = (msg = "") =>
     String(msg || "").trim().toLowerCase()
 
+const includesAny = (value, phrases = []) =>
+    phrases.some((phrase) => value.includes(phrase))
+
 const getMenuAction = (msg = "", language = "en") => {
     const normalized = normalizeCommand(msg)
 
@@ -80,6 +83,88 @@ const getMenuAction = (msg = "", language = "en") => {
     }
 
     if (commands.cancel.includes(normalized)) {
+        return "cancel"
+    }
+
+    const naturalLanguageMap = {
+        en: {
+            book: [
+                "book appointment",
+                "i want to book",
+                "new appointment",
+                "create appointment",
+                "book a slot",
+                "schedule appointment"
+            ],
+            view: [
+                "show my appointments",
+                "show appointments",
+                "view my appointments",
+                "list my appointments",
+                "my appointments",
+                "see appointments"
+            ],
+            cancel: [
+                "cancel my appointment",
+                "cancel appointment",
+                "delete appointment",
+                "remove my appointment"
+            ]
+        },
+        hi: {
+            book: [
+                "अपॉइंटमेंट बुक",
+                "बुक करनी",
+                "बुक करना",
+                "नई अपॉइंटमेंट",
+                "अपॉइंटमेंट बनानी"
+            ],
+            view: [
+                "मेरी अपॉइंटमेंट",
+                "अपॉइंटमेंट दिखाओ",
+                "अपॉइंटमेंट देखें",
+                "मेरी बुकिंग"
+            ],
+            cancel: [
+                "अपॉइंटमेंट रद्द",
+                "रद्द करनी",
+                "कैंसल अपॉइंटमेंट",
+                "मेरी अपॉइंटमेंट रद्द"
+            ]
+        },
+        pa: {
+            book: [
+                "ਅਪਾਇੰਟਮੈਂਟ ਬੁੱਕ",
+                "ਬੁੱਕ ਕਰਨੀ",
+                "ਨਵੀਂ ਅਪਾਇੰਟਮੈਂਟ",
+                "ਸਲਾਟ ਬੁੱਕ"
+            ],
+            view: [
+                "ਮੇਰੀ ਅਪਾਇੰਟਮੈਂਟ",
+                "ਅਪਾਇੰਟਮੈਂਟ ਵੇਖੋ",
+                "ਮੇਰੀ ਬੁੱਕਿੰਗ",
+                "ਅਪਾਇੰਟਮੈਂਟ ਦਿਖਾਓ"
+            ],
+            cancel: [
+                "ਅਪਾਇੰਟਮੈਂਟ ਰੱਦ",
+                "ਰੱਦ ਕਰਨੀ",
+                "ਮੇਰੀ ਅਪਾਇੰਟਮੈਂਟ ਰੱਦ",
+                "ਕੈਂਸਲ ਅਪਾਇੰਟਮੈਂਟ"
+            ]
+        }
+    }
+
+    const phrases = naturalLanguageMap[language] || naturalLanguageMap.en
+
+    if (includesAny(normalized, phrases.book)) {
+        return "book"
+    }
+
+    if (includesAny(normalized, phrases.view)) {
+        return "view"
+    }
+
+    if (includesAny(normalized, phrases.cancel)) {
         return "cancel"
     }
 
